@@ -1,22 +1,22 @@
-#! /usr/bin/env python3
-
-from sockHelpers import sendAll
-
-# Echo client program
 import socket, sys, re
-sys.path.append("../lib")       # for params
+import os.path
+from os import path
+from os.path import exists
+sys.path.append("../lib") # For params
 import params
+
+from framedSock import framedSend, framedReceive
 
 switchesVarDefaults = (
     (('-s', '--server'), 'server', "127.0.0.1:50001"),
-    (('-?', '--usage'), "usage", False), # boolean (set if present)
+    (('-d', '--debug'), "debug", False), #boolean (set if present)
+    (('-?', '--usage'), "usage", False), #boolean (set if present)
     )
 
-
-progname = "framedClient"
+progname = "framedClient" 
 paramMap = params.parseParams(switchesVarDefaults)
 
-server, usage  = paramMap["server"], paramMap["usage"]
+server, usage, debug = paramMap["server"], paramMap["usage"], paramMap["debug"]
 
 if usage:
     params.usage()
@@ -31,35 +31,37 @@ except:
 addrFamily = socket.AF_INET
 socktype = socket.SOCK_STREAM
 addrPort = (serverHost, serverPort)
-
 s = socket.socket(addrFamily, socktype)
+
 if s is None:
-    print('could not open socket')
+    print("Could not open socket...")
     sys.exit(1)
 
 s.connect(addrPort)
 
-if s is None:
-    print('could not open socket')
-    sys.exit(1)
+file_name = input("Choose a file")
 
-outMessage = b"Hello world!"
+file = open(file_name, 'rb')
+payload = file.read()
 
-print("sending '%s'" % outMessage)
-sendAll(s, outMessage)
+sentFile = input("enter new file name")
 
-data = s.recv(1024).decode()
-print("Received '%s'" % data)
-
-print("sending '%s'" % outMessage)
-sendAll(s, outMessage)
-
-s.shutdown(socket.SHUT_WR)      # no more output
-
-while 1:
-    data = s.recv(1024).decode()
-    print("Received '%s'" % data)
-    if len(data) == 0:
-        break
-print("Zero length read.  Closing")
-s.close()
+framedSend(s, sentFile.encode(), debug)
+'''
+file_exists = framedReceive(s,debug)
+file_exists = file_exists.decode()
+if file_exists == 'True':
+    print("That filename exist allready")
+    sys.exit(0)
+else:
+    '''
+try:
+    framedSend(s, payload,debug)
+except:
+    print("Lost connection")
+    sys.exit(0)
+try:
+    framedReceive(s,debug)
+except:
+    print("Lost connection")
+    sys.exit(0)
