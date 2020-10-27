@@ -2,8 +2,11 @@
 
 # Echo client program
 import socket, sys, re
+from os import path
+from os.path import exists
 
-sys.path.append("../lib")       # for params
+
+sys.path.append("../../lib")       # for params
 import params
 
 from encapFramedSock import EncapFramedSock
@@ -46,7 +49,25 @@ sock.connect(addrPort)
 
 fsock = EncapFramedSock((sock, addrPort))
 
-for i in range(2):
-    print("sending hello world")
-    fsock.send( b"hello world", debug)
-    print("received:", fsock.receive(debug))
+for i in range(1):
+    filename = input("Please input a file name \n")
+    if exists(filename):
+        file = open(filename,'rb')
+        payload = file.read()
+        if len(payload) == 0:
+            print("Cannot send an empty file. sorry :( \n")
+            sys.exit(0)
+        else:
+            fsock.send(filename.encode(), debug) ## send filename to check for existance
+            file_exists = fsock.receive(debug).decode()
+            if file_exists == 'True':
+                print("That file currently exists in the server.")
+                sys.exit(0)
+            elif file_exists == 'exists': 
+                print("Another thread is currently writing to this server! Please try again later.") 
+                sys.exit(0)
+            else:
+                fsock.send(payload,debug)
+                print(fsock.receive(debug).decode())
+    else:
+        print("File '%s' does not exist." % filename)
